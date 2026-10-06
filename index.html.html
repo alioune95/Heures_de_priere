@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}</style>
+<title>Heures de prière</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400..700&display=swap">
+<style>
+/* Layout: une colonne étroite alignée à gauche. En haut le lieu, puis la prochaine prière avec la frise de la journée, la liste des six horaires, la Qibla. */
+:root {
+  --bg: #E9EDF4;
+  --surface: #F6F8FC;
+  --ink: #101B33;
+  --muted: #56627F;
+  --line: #C9D1E0;
+  --accent: #B8650F;
+  --accent-soft: #F1DFC8;
+  --day: #E7B56D;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --font-body: "Hanken Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-arabic: "Amiri", "Geeza Pro", "Noto Naskh Arabic", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0A1022;
+    --surface: #121B33;
+    --ink: #E8ECF6;
+    --muted: #93A0BF;
+    --line: #26314F;
+    --accent: #F0A64A;
+    --accent-soft: #2A2436;
+    --day: #7A5A2A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0A1022;
+  --surface: #121B33;
+  --ink: #E8ECF6;
+  --muted: #93A0BF;
+  --line: #26314F;
+  --accent: #F0A64A;
+  --accent-soft: #2A2436;
+  --day: #7A5A2A;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.45;
+  padding-inline: 16px;
+  padding-block: 20px 40px;
+}
+.wrap { max-width: 34rem; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.top > div { min-width: 0; }
+.eyebrow { margin: 0 0 4px; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(1.9rem, 8vw, 2.7rem); line-height: 1.05; letter-spacing: -0.02em; text-wrap: balance; overflow-wrap: anywhere; }
+.sub { margin: 6px 0 0; color: var(--muted); }
+.btn { background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); }
+.btn[aria-expanded="true"] { background: var(--surface); border-color: var(--accent); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field label, .panel summary { font-size: 0.85rem; color: var(--muted); }
+.panel input, .panel select { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.cities { list-style: none; margin: 0; padding: 0; max-height: 13rem; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.cities li + li { border-top: 1px solid var(--line); }
+.cities button { width: 100%; text-align: left; background: transparent; border: 0; padding: 10px 12px; cursor: pointer; display: flex; justify-content: space-between; gap: 12px; }
+.cities button:hover, .cities button[aria-current="true"] { background: var(--accent-soft); }
+.cities small { color: var(--muted); }
+.cities .none { padding: 10px 12px; color: var(--muted); }
+.panel summary { cursor: pointer; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.grid .wide { grid-column: 1 / -1; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 12px; }
+.err { margin: 0; color: var(--accent); font-size: 0.9rem; min-height: 1.2em; }
+.apply { justify-self: start; background: var(--accent); color: var(--bg); border: 0; border-radius: 8px; padding: 10px 16px; cursor: pointer; font-weight: 600; }
+
+.next { display: flex; flex-direction: column; gap: 14px; }
+.label { margin: 0; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.nextrow { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.nname { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.6rem, 14vw, 3.8rem); line-height: 1; letter-spacing: -0.03em; }
+.nar { font-family: var(--font-arabic); font-size: 2rem; color: var(--accent); }
+.nmeta { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; }
+.nclock { font-family: var(--font-display); font-weight: 600; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.ncount { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.strip { position: relative; height: 44px; margin-top: 6px; }
+.track { position: absolute; left: 0; right: 0; top: 18px; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.daylight { position: absolute; top: 0; bottom: 0; background: var(--day); }
+.tick { position: absolute; top: 12px; width: 2px; height: 20px; background: var(--ink); margin-left: -1px; }
+.tick.fard { height: 20px; }
+.tick.soft { height: 12px; top: 16px; background: var(--muted); }
+.now { position: absolute; top: 4px; width: 14px; height: 14px; margin-left: -7px; background: var(--accent); border-radius: 50%; border: 2px solid var(--bg); }
+.scale { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; margin-top: -2px; }
+
+.daynav { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.daynav .spacer { flex: 1; }
+.daynav .btn { padding: 6px 12px; }
+.times { list-style: none; margin: 0; padding: 0; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 14px 12px; margin-inline: -12px; border-bottom: 1px solid var(--line); }
+.row .rn { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; min-width: 0; }
+.row .fr { font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; }
+.row .ar { font-family: var(--font-arabic); font-size: 1.25rem; color: var(--muted); }
+.row .desc { font-size: 0.85rem; color: var(--muted); width: 100%; }
+.row time { font-family: var(--font-display); font-weight: 600; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.row.past { opacity: 0.55; }
+.row.is-next { background: var(--accent-soft); border-radius: 8px; border-bottom-color: transparent; }
+.row.is-next .ar { color: var(--accent); }
+.row.minor .fr { font-weight: 500; font-size: 1rem; }
+.row.minor time { font-weight: 500; font-size: 1.2rem; }
+
+.qibla { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.qibla h2 { margin: 0 0 6px; font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; }
+.qibla .deg { font-family: var(--font-display); font-weight: 700; font-size: 2.2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.qibla p { margin: 6px 0 0; color: var(--muted); max-width: 18rem; }
+.compass { width: 120px; height: 120px; flex: none; }
+.compass .ring { fill: var(--surface); stroke: var(--line); stroke-width: 2; }
+.compass .mark { stroke: var(--muted); stroke-width: 2; }
+.compass .north { fill: var(--muted); font: 600 11px var(--font-body); }
+.compass .needle { fill: var(--accent); }
+.compass .tail { fill: var(--line); }
+.compass .hub { fill: var(--bg); stroke: var(--ink); stroke-width: 2; }
+.note { margin: 0; color: var(--muted); font-size: 0.85rem; }
+@media (prefers-reduced-motion: no-preference) {
+  .row, .btn { transition: background-color 0.2s, border-color 0.2s; }
+}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow" id="hijri"></p>
+      <h1 id="city">Paris</h1>
+      <p class="sub" id="dateline"></p>
+    </div>
+    <button class="btn" id="toggle" type="button" aria-expanded="false" aria-controls="panel">Changer de lieu</button>
+  </header>
+
+  <section class="panel" id="panel" hidden aria-label="Lieu et méthode de calcul">
+    <button class="apply" id="geo" type="button">Utiliser ma position</button>
+    <div class="field">
+      <label for="q">Ville</label>
+      <input id="q" type="search" placeholder="Rechercher une ville" autocomplete="off" spellcheck="false">
+    </div>
+    <ul class="cities" id="cities"></ul>
+    <details>
+      <summary>Saisir des coordonnées</summary>
+      <div class="grid">
+        <div class="field"><label for="lat">Latitude</label><input id="lat" type="text" inputmode="decimal" placeholder="48.8566"></div>
+        <div class="field"><label for="lng">Longitude</label><input id="lng" type="text" inputmode="decimal" placeholder="2.3522"></div>
+        <div class="field"><label for="nm">Nom du lieu</label><input id="nm" type="text" placeholder="Ma mosquée"></div>
+        <div class="field"><label for="tz">Fuseau horaire</label><input id="tz" type="text" placeholder="Europe/Paris"></div>
+        <div class="wide"><button class="apply" id="apply" type="button">Utiliser ce lieu</button></div>
+      </div>
+    </details>
+    <p class="err" id="err" role="status"></p>
+    <div class="two">
+      <div class="field">
+        <label for="method">Méthode de calcul</label>
+        <select id="method"></select>
+      </div>
+      <div class="field">
+        <label for="asr">Calcul de l'Asr</label>
+        <select id="asr">
+          <option value="1">Standard (chaféite, malékite, hanbalite)</option>
+          <option value="2">Hanafite</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <section class="next" aria-label="Prochaine prière">
+    <p class="label" id="nlabel">Prochaine prière</p>
+    <div class="nextrow">
+      <span class="nname" id="nname">–</span>
+      <span class="nar" id="nar" lang="ar" dir="rtl"></span>
+    </div>
+    <div class="nmeta">
+      <span class="nclock" id="nclock"></span>
+      <span class="ncount" id="ncount"></span>
+    </div>
+    <div>
+      <div class="strip" id="strip" role="img" aria-label="Frise de la journée avec les heures de prière"></div>
+      <div class="scale" aria-hidden="true"><span>0 h</span><span>6 h</span><span>12 h</span><span>18 h</span><span>24 h</span></div>
+    </div>
+  </section>
+
+  <section aria-label="Horaires du jour">
+    <div class="daynav">
+      <button class="btn" id="prev" type="button" aria-label="Jour précédent">‹</button>
+      <button class="btn" id="today" type="button" hidden>Aujourd'hui</button>
+      <span class="spacer"></span>
+      <button class="btn" id="nextday" type="button" aria-label="Jour suivant">›</button>
+    </div>
+    <ul class="times" id="times"></ul>
+  </section>
+
+  <section class="qibla" aria-label="Direction de la Qibla">
+    <div>
+      <h2>Direction de la Qibla</h2>
+      <div class="deg" id="qdeg"></div>
+      <p id="qtext"></p>
+    </div>
+    <svg class="compass" viewBox="0 0 120 120" role="img" aria-label="Boussole de la Qibla">
+      <circle class="ring" cx="60" cy="60" r="56"></circle>
+      <line class="mark" x1="60" y1="4" x2="60" y2="12"></line>
+      <line class="mark" x1="116" y1="60" x2="108" y2="60"></line>
+      <line class="mark" x1="60" y1="116" x2="60" y2="108"></line>
+      <line class="mark" x1="4" y1="60" x2="12" y2="60"></line>
+      <text class="north" x="60" y="26" text-anchor="middle">N</text>
+      <g id="needle">
+        <polygon class="needle" points="60,20 67,62 53,62"></polygon>
+        <polygon class="tail" points="53,62 67,62 60,92"></polygon>
+      </g>
+      <circle class="hub" cx="60" cy="62" r="5"></circle>
+    </svg>
+  </section>
+
+  <p class="note" id="note"></p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var CITIES = [
+    { id: "paris", n: "Paris", p: "France", c: "fr", lat: 48.8566, lng: 2.3522, tz: "Europe/Paris" },
+    { id: "marseille", n: "Marseille", p: "France", c: "fr", lat: 43.2965, lng: 5.3698, tz: "Europe/Paris" },
+    { id: "lyon", n: "Lyon", p: "France", c: "fr", lat: 45.7640, lng: 4.8357, tz: "Europe/Paris" },
+    { id: "toulouse", n: "Toulouse", p: "France", c: "fr", lat: 43.6047, lng: 1.4442, tz: "Europe/Paris" },
+    { id: "nice", n: "Nice", p: "France", c: "fr", lat: 43.7102, lng: 7.2620, tz: "Europe/Paris" },
+    { id: "nantes", n: "Nantes", p: "France", c: "fr", lat: 47.2184, lng: -1.5536, tz: "Europe/Paris" },
+    { id: "strasbourg", n: "Strasbourg", p: "France", c: "fr", lat: 48.5734, lng: 7.7521, tz: "Europe/Paris" },
+    { id: "bordeaux", n: "Bordeaux", p: "France", c: "fr", lat: 44.8378, lng: -0.5792, tz: "Europe/Paris" },
+    { id: "lille", n: "Lille", p: "France", c: "fr", lat: 50.6292, lng: 3.0573, tz: "Europe/Paris" },
+    { id: "montpellier", n: "Montpellier", p: "France", c: "fr", lat: 43.6108, lng: 3.8767, tz: "Europe/Paris" },
+    { id: "rennes", n: "Rennes", p: "France", c: "fr", lat: 48.1173, lng: -1.6778, tz: "Europe/Paris" },
+    { id: "grenoble", n: "Grenoble", p: "France", c: "fr", lat: 45.1885, lng: 5.7245, tz: "Europe/Paris" },
+    { id: "reunion", n: "Saint-Denis", p: "La Réunion", c: "fr", lat: -20.8789, lng: 55.4481, tz: "Indian/Reunion" },
+    { id: "martinique", n: "Fort-de-France", p: "Martinique", c: "fr", lat: 14.6161, lng: -61.0588, tz: "America/Martinique" },
+    { id: "mayotte", n: "Mamoudzou", p: "Mayotte", c: "fr", lat: -12.7806, lng: 45.2279, tz: "Indian/Mayotte" },
+    { id: "bruxelles", n: "Bruxelles", p: "Belgique", c: "be", lat: 50.8503, lng: 4.3517, tz: "Europe/Brussels" },
+    { id: "geneve", n: "Genève", p: "Suisse", c: "ch", lat: 46.2044, lng: 6.1432, tz: "Europe/Zurich" },
+    { id: "londres", n: "Londres", p: "Royaume-Uni", c: "gb", lat: 51.5074, lng: -0.1278, tz: "Europe/London" },
+    { id: "amsterdam", n: "Amsterdam", p: "Pays-Bas", c: "nl", lat: 52.3676, lng: 4.9041, tz: "Europe/Amsterdam" },
+    { id: "berlin", n: "Berlin", p: "Allemagne", c: "de", lat: 52.5200, lng: 13.4050, tz: "Europe/Berlin" },
+    { id: "madrid", n: "Madrid", p: "Espagne", c: "es", lat: 40.4168, lng: -3.7038, tz: "Europe/Madrid" },
+    { id: "rome", n: "Rome", p: "Italie", c: "it", lat: 41.9028, lng: 12.4964, tz: "Europe/Rome" },
+    { id: "dakar", n: "Dakar", p: "Sénégal", c: "sn", lat: 14.7167, lng: -17.4677, tz: "Africa/Dakar" },
+    { id: "bamako", n: "Bamako", p: "Mali", c: "ml", lat: 12.6392, lng: -8.0029, tz: "Africa/Bamako" },
+    { id: "abidjan", n: "Abidjan", p: "Côte d'Ivoire", c: "ci", lat: 5.3600, lng: -4.0083, tz: "Africa/Abidjan" },
+    { id: "nouakchott", n: "Nouakchott", p: "Mauritanie", c: "mr", lat: 18.0735, lng: -15.9582, tz: "Africa/Nouakchott" },
+    { id: "conakry", n: "Conakry", p: "Guinée", c: "gn", lat: 9.6412, lng: -13.5784, tz: "Africa/Conakry" },
+    { id: "niamey", n: "Niamey", p: "Niger", c: "ne", lat: 13.5116, lng: 2.1254, tz: "Africa/Niamey" },
+    { id: "ouagadougou", n: "Ouagadougou", p: "Burkina Faso", c: "bf", lat: 12.3714, lng: -1.5197, tz: "Africa/Ouagadougou" },
+    { id: "lagos", n: "Lagos", p: "Nigeria", c: "ng", lat: 6.5244, lng: 3.3792, tz: "Africa/Lagos" },
+    { id: "casablanca", n: "Casablanca", p: "Maroc", c: "ma", lat: 33.5731, lng: -7.5898, tz: "Africa/Casablanca" },
+    { id: "rabat", n: "Rabat", p: "Maroc", c: "ma", lat: 34.0209, lng: -6.8416, tz: "Africa/Casablanca" },
+    { id: "alger", n: "Alger", p: "Algérie", c: "dz", lat: 36.7538, lng: 3.0588, tz: "Africa/Algiers" },
+    { id: "tunis", n: "Tunis", p: "Tunisie", c: "tn", lat: 36.8065, lng: 10.1815, tz: "Africa/Tunis" },
+    { id: "tripoli", n: "Tripoli", p: "Libye", c: "ly", lat: 32.8872, lng: 13.1913, tz: "Africa/Tripoli" },
+    { id: "lecaire", n: "Le Caire", p: "Égypte", c: "eg", lat: 30.0444, lng: 31.2357, tz: "Africa/Cairo" },
+    { id: "khartoum", n: "Khartoum", p: "Soudan", c: "sd", lat: 15.5007, lng: 32.5599, tz: "Africa/Khartoum" },
+    { id: "nairobi", n: "Nairobi", p: "Kenya", c: "ke", lat: -1.2921, lng: 36.8219, tz: "Africa/Nairobi" },
+    { id: "moroni", n: "Moroni", p: "Comores", c: "km", lat: -11.7172, lng: 43.2473, tz: "Indian/Comoro" },
+    { id: "istanbul", n: "Istanbul", p: "Turquie", c: "tr", lat: 41.0082, lng: 28.9784, tz: "Europe/Istanbul" },
+    { id: "lamecque", n: "La Mecque", p: "Arabie saoudite", c: "sa", lat: 21.3891, lng: 39.8579, tz: "Asia/Riyadh" },
+    { id: "medine", n: "Médine", p: "Arabie saoudite", c: "sa", lat: 24.4686, lng: 39.6142, tz: "Asia/Riyadh" },
+    { id: "riyad", n: "Riyad", p: "Arabie saoudite", c: "sa", lat: 24.7136, lng: 46.6753, tz: "Asia/Riyadh" },
+    { id: "dubai", n: "Dubaï", p: "Émirats arabes unis", c: "ae", lat: 25.2048, lng: 55.2708, tz: "Asia/Dubai" },
+    { id: "doha", n: "Doha", p: "Qatar", c: "qa", lat: 25.2854, lng: 51.5310, tz: "Asia/Qatar" },
+    { id: "koweit", n: "Koweït", p: "Koweït", c: "kw", lat: 29.3759, lng: 47.9774, tz: "Asia/Kuwait" },
+    { id: "jerusalem", n: "Jérusalem", p: "Palestine", c: "ps", lat: 31.7683, lng: 35.2137, tz: "Asia/Jerusalem" },
+    { id: "amman", n: "Amman", p: "Jordanie", c: "jo", lat: 31.9454, lng: 35.9284, tz: "Asia/Amman" },
+    { id: "beyrouth", n: "Beyrouth", p: "Liban", c: "lb", lat: 33.8938, lng: 35.5018, tz: "Asia/Beirut" },
+    { id: "bagdad", n: "Bagdad", p: "Irak", c: "iq", lat: 33.3152, lng: 44.3661, tz: "Asia/Baghdad" },
+    { id: "teheran", n: "Téhéran", p: "Iran", c: "ir", lat: 35.6892, lng: 51.3890, tz: "Asia/Tehran" },
+    { id: "karachi", n: "Karachi", p: "Pakistan", c: "pk", lat: 24.8607, lng: 67.0011, tz: "Asia/Karachi" },
+    { id: "lahore", n: "Lahore", p: "Pakistan", c: "pk", lat: 31.5204, lng: 74.3587, tz: "Asia/Karachi" },
+    { id: "dacca", n: "Dacca", p: "Bangladesh", c: "bd", lat: 23.8103, lng: 90.4125, tz: "Asia/Dhaka" },
+    { id: "jakarta", n: "Jakarta", p: "Indonésie", c: "id", lat: -6.2088, lng: 106.8456, tz: "Asia/Jakarta" },
+    { id: "kualalumpur", n: "Kuala Lumpur", p: "Malaisie", c: "my", lat: 3.1390, lng: 101.6869, tz: "Asia/Kuala_Lumpur" },
+    { id: "montreal", n: "Montréal", p: "Canada", c: "ca", lat: 45.5019, lng: -73.5674, tz: "America/Toronto" },
+    { id: "newyork", n: "New York", p: "États-Unis", c: "us", lat: 40.7128, lng: -74.0060, tz: "America/New_York" }
+  ];
+
+  var METHODS = {
+    uoif: { n: "UOIF (France)", f: 12, i: 12 },
+    mwl: { n: "Ligue islamique mondiale", f: 18, i: 17 },
+    isna: { n: "ISNA (Amérique du Nord)", f: 15, i: 15 },
+    egypt: { n: "Autorité générale égyptienne", f: 19.5, i: 17.5 },
+    makkah: { n: "Umm al-Qura (La Mecque)", f: 18.5, im: 90 },
+    karachi: { n: "Université de Karachi", f: 18, i: 18 }
+  };
+
+  var PRAYERS = [
+    { k: "fajr", fr: "Fajr", ar: "الفجر", d: "Aube", fard: true },
+    { k: "sunrise", fr: "Chourouk", ar: "الشروق", d: "Lever du soleil", fard: false },
+    { k: "dhuhr", fr: "Dhuhr", ar: "الظهر", d: "Midi", fard: true },
+    { k: "asr", fr: "Asr", ar: "العصر", d: "Après-midi", fard: true },
+    { k: "maghrib", fr: "Maghrib", ar: "المغرب", d: "Coucher du soleil", fard: true },
+    { k: "isha", fr: "Isha", ar: "العشاء", d: "Nuit", fard: true }
+  ];
+  var FARD = PRAYERS.filter(function (p) { return p.fard; });
+  var KAABA = { lat: 21.4225, lng: 39.8262 };
+
+  /* ---------- Calcul astronomique ---------- */
+  var RAD = Math.PI / 180, DEG = 180 / Math.PI;
+  function sin(d) { return Math.sin(d * RAD); }
+  function cos(d) { return Math.cos(d * RAD); }
+  function tan(d) { return Math.tan(d * RAD); }
+  function asin(x) { return Math.asin(x) * DEG; }
+  function acos(x) { return Math.acos(x) * DEG; }
+  function atan2(y, x) { return Math.atan2(y, x) * DEG; }
+  function acot(x) { return Math.atan(1 / x) * DEG; }
+  function fixA(a) { a = a % 360; return a < 0 ? a + 360 : a; }
+  function fixH(h) { h = h % 24; return h < 0 ? h + 24 : h; }
+
+  function julian(y, m, d) {
+    if (m <= 2) { y -= 1; m += 12; }
+    var A = Math.floor(y / 100), B = 2 - A + Math.floor(A / 4);
+    return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + B - 1524.5;
+  }
+  function sunPos(jd) {
+    var D = jd - 2451545.0;
+    var g = fixA(357.529 + 0.98560028 * D);
+    var q = fixA(280.459 + 0.98564736 * D);
+    var L = fixA(q + 1.915 * sin(g) + 0.020 * sin(2 * g));
+    var e = 23.439 - 0.00000036 * D;
+    var RA = fixH(atan2(cos(e) * sin(L), cos(L)) / 15);
+    return { decl: asin(sin(e) * sin(L)), eqt: q / 15 - RA };
+  }
+
+  function tzOffset(tz, y, m, d) {
+    var dt = new Date(Date.UTC(y, m - 1, d, 12));
+    var f = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" });
+    var p = {};
+    f.formatToParts(dt).forEach(function (x) { p[x.type] = +x.value; });
+    return (Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - dt.getTime()) / 36e5;
+  }
+  function nowIn(tz) {
+    var f = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" });
+    var p = {};
+    f.formatToParts(new Date()).forEach(function (x) { p[x.type] = +x.value; });
+    return { y: p.year, m: p.month, d: p.day, min: p.hour * 60 + p.minute, sec: p.second };
+  }
+
+  /* Retourne les heures en minutes depuis minuit (heure locale du lieu), ou null près des pôles. */
+  function compute(y, m, d, loc, method, asrF) {
+    var off = tzOffset(loc.tz, y, m, d);
+    var jd = julian(y, m, d) - loc.lng / 360;
+    var lat = loc.lat;
+    function mid(t) { return fixH(12 - sunPos(jd + t / 24).eqt); }
+    function ang(a, t, ccw) {
+      var dec = sunPos(jd + t / 24).decl;
+      var v = (-sin(a) - sin(lat) * sin(dec)) / (cos(lat) * cos(dec));
+      if (v < -1 || v > 1) return NaN;
+      var h = acos(v) / 15;
+      return mid(t) + (ccw ? -h : h);
+    }
+    var sr = ang(0.833, 6, true), ss = ang(0.833, 18, false);
+    if (isNaN(sr) || isNaN(ss)) return null;
+    var fj = ang(method.f, 5, true);
+    var is = method.im != null ? ss + method.im / 60 : ang(method.i, 18, false);
+    var night = fixH(sr - ss);
+    if (isNaN(fj)) fj = sr - night * (method.f / 60);
+    if (isNaN(is)) is = ss + night * (method.i / 60);
+    var dec13 = sunPos(jd + 13 / 24).decl;
+    var as = ang(-acot(asrF + tan(Math.abs(lat - dec13))), 13, false);
+    if (isNaN(as)) return null;
+    var base = off - loc.lng / 15;
+    function r(h) { return Math.round(fixH(h + base) * 60) % 1440; }
+    return { fajr: r(fj), sunrise: r(sr), dhuhr: r(mid(12)), asr: r(as), maghrib: r(ss), isha: r(is) };
+  }
+
+  function qibla(loc) {
+    var dl = (KAABA.lng - loc.lng) * RAD, p1 = loc.lat * RAD, p2 = KAABA.lat * RAD;
+    var b = Math.atan2(Math.sin(dl) * Math.cos(p2), Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl)) * DEG;
+    var a = Math.sin((p2 - p1) / 2), c = Math.sin(dl / 2);
+    var h = a * a + Math.cos(p1) * Math.cos(p2) * c * c;
+    return { bearing: fixA(b), km: 2 * 6371 * Math.asin(Math.sqrt(h)) };
+  }
+  var WINDS = ["nord", "nord-est", "est", "sud-est", "sud", "sud-ouest", "ouest", "nord-ouest"];
+
+  /* ---------- État ---------- */
+  var KEY = "heures-de-priere-v1";
+  var S = { city: "paris", custom: null, method: "uoif", asr: 1, touched: false };
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (saved && typeof saved === "object") {
+      if (saved.city === "custom" && saved.custom) { S.city = "custom"; S.custom = saved.custom; }
+      else if (CITIES.some(function (c) { return c.id === saved.city; })) S.city = saved.city;
+      if (METHODS[saved.method]) S.method = saved.method;
+      if (saved.asr === 2) S.asr = 2;
+      S.touched = !!saved.touched;
+    }
+  } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+  var sel = null; /* null = aujourd'hui, sinon {y,m,d} */
+
+  function currentLoc() {
+    if (S.city === "custom" && S.custom) return S.custom;
+    return CITIES.filter(function (c) { return c.id === S.city; })[0] || CITIES[0];
+  }
+  function methodFor(c) {
+    if (c === "fr") return "uoif";
+    if (c === "sa" || c === "ae" || c === "qa" || c === "kw") return "makkah";
+    if (c === "eg" || c === "sd" || c === "ly") return "egypt";
+    if (c === "pk" || c === "bd") return "karachi";
+    if (c === "us" || c === "ca") return "isna";
+    return "mwl";
+  }
+
+  /* ---------- Rendu ---------- */
+  var $ = function (id) { return document.getElementById(id); };
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function fmt(m) { return pad(Math.floor(m / 60) % 24) + ":" + pad(m % 60); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function norm(s) { return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+  function utcNoon(ymd) { return new Date(Date.UTC(ymd.y, ymd.m - 1, ymd.d, 12)); }
+  function shift(ymd, n) { var dt = new Date(Date.UTC(ymd.y, ymd.m - 1, ymd.d + n, 12)); return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate() }; }
+
+  var lastKey = "";
+
+  function renderDate(ymd, today) {
+    var dt = utcNoon(ymd);
+    var s = new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(dt);
+    $("dateline").textContent = s.charAt(0).toUpperCase() + s.slice(1);
+    var h = "";
+    try { h = new Intl.DateTimeFormat("fr-FR-u-ca-islamic-umalqura", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" }).format(dt); } catch (e) {}
+    $("hijri").textContent = h ? h.replace(" AH", "") + " H" : "Heures de prière";
+    $("today").hidden = sel === null || (sel.y === today.y && sel.m === today.m && sel.d === today.d);
+  }
+
+  function renderStrip(T, nowMin, showNow) {
+    var html = '<div class="track"><div class="daylight" style="left:' + (T.sunrise / 14.4) + "%;width:" + ((T.maghrib - T.sunrise) / 14.4) + '%"></div></div>';
+    PRAYERS.forEach(function (p) {
+      html += '<div class="tick ' + (p.fard ? "fard" : "soft") + '" style="left:' + (T[p.k] / 14.4) + '%"></div>';
+    });
+    if (showNow) html += '<div class="now" style="left:' + (nowMin / 14.4) + '%"></div>';
+    $("strip").innerHTML = html;
+  }
+
+  function renderList(T, nowMin, showNow) {
+    var nextKey = null;
+    if (showNow) {
+      for (var i = 0; i < FARD.length; i++) { if (T[FARD[i].k] > nowMin) { nextKey = FARD[i].k; break; } }
+    }
+    $("times").innerHTML = PRAYERS.map(function (p) {
+      var cls = "row" + (p.fard ? "" : " minor") + (showNow && T[p.k] <= nowMin ? " past" : "") + (p.k === nextKey ? " is-next" : "");
+      return '<li class="' + cls + '"><div class="rn"><span class="fr">' + p.fr + '</span><span class="ar" lang="ar" dir="rtl">' + p.ar + '</span><span class="desc">' + p.d + "</span></div><time>" + fmt(T[p.k]) + "</time></li>";
+    }).join("");
+  }
+
+  function nextPrayer(loc, method, asrF) {
+    var now = Date.now(), t = nowIn(loc.tz);
+    for (var k = 0; k < 2; k++) {
+      var ymd = shift({ y: t.y, m: t.m, d: t.d }, k);
+      var T = compute(ymd.y, ymd.m, ymd.d, loc, method, asrF);
+      if (!T) return null;
+      var off = tzOffset(loc.tz, ymd.y, ymd.m, ymd.d);
+      for (var i = 0; i < FARD.length; i++) {
+        var ms = Date.UTC(ymd.y, ymd.m - 1, ymd.d) + T[FARD[i].k] * 6e4 - off * 36e5;
+        if (ms > now) return { p: FARD[i], ms: ms, time: T[FARD[i].k], tomorrow: k === 1 };
+      }
+    }
+    return null;
+  }
+
+  function renderHero(loc, method, asrF) {
+    var n = nextPrayer(loc, method, asrF);
+    if (!n) { $("nname").textContent = "–"; $("nar").textContent = ""; $("nclock").textContent = ""; $("ncount").textContent = "Horaires indisponibles à cette latitude"; return; }
+    var diff = Math.max(0, Math.round((n.ms - Date.now()) / 1000));
+    var h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60), s = diff % 60;
+    $("nlabel").textContent = n.tomorrow ? "Prochaine prière, demain" : "Prochaine prière";
+    $("nname").textContent = n.p.fr;
+    $("nar").textContent = n.p.ar;
+    $("nclock").textContent = fmt(n.time);
+    $("ncount").textContent = "dans " + (h > 0 ? h + " h " : "") + pad(m) + " min " + pad(s) + " s";
+  }
+
+  function renderStatic(loc, method) {
+    $("city").textContent = loc.n;
+    var q = qibla(loc);
+    var deg = Math.round(q.bearing);
+    $("qdeg").textContent = deg + "°";
+    $("qtext").textContent = "Vers le " + WINDS[Math.round(q.bearing / 45) % 8] + ", depuis le nord dans le sens horaire. La Kaaba est à environ " + Math.round(q.km).toLocaleString("fr-FR") + " km.";
+    $("needle").setAttribute("transform", "rotate(" + q.bearing.toFixed(1) + " 60 62)");
+    var isha = method.im != null ? "Isha " + method.im + " min après Maghrib" : "Isha " + method.i + "°";
+    $("note").textContent = method.n + " : Fajr " + method.f + "°, " + isha + ". Les horaires sont calculés sur votre appareil et peuvent différer de quelques minutes de ceux de votre mosquée.";
+  }
+
+  function update(force) {
+    var loc = currentLoc(), method = METHODS[S.method], asrF = S.asr;
+    var t;
+    try { t = nowIn(loc.tz); } catch (e) { t = null; }
+    if (!t) { $("ncount").textContent = "Fuseau horaire inconnu"; return; }
+    var today = { y: t.y, m: t.m, d: t.d };
+    var ymd = sel || today;
+    var isToday = ymd.y === today.y && ymd.m === today.m && ymd.d === today.d;
+    var key = [S.city, loc.lat, loc.lng, S.method, S.asr, ymd.y, ymd.m, ymd.d, isToday ? t.min : "x"].join("|");
+    if (force || key !== lastKey) {
+      lastKey = key;
+      renderStatic(loc, method);
+      renderDate(ymd, today);
+      var T = compute(ymd.y, ymd.m, ymd.d, loc, method, asrF);
+      if (!T) {
+        $("times").innerHTML = '<li class="row"><div class="rn"><span class="desc">Le soleil ne se lève ou ne se couche pas à cette latitude à cette date.</span></div><span></span></li>';
+        $("strip").innerHTML = "";
+      } else {
+        renderStrip(T, t.min, isToday);
+        renderList(T, t.min, isToday);
+      }
+    }
+    renderHero(loc, method, asrF);
+  }
+
+  /* ---------- Panneau de réglages ---------- */
+  function renderCities() {
+    var q = norm($("q").value.trim());
+    var list = CITIES.filter(function (c) { return !q || norm(c.n).indexOf(q) !== -1 || norm(c.p).indexOf(q) !== -1; });
+    $("cities").innerHTML = list.length ? list.map(function (c) {
+      return '<li><button type="button" data-city="' + c.id + '"' + (S.city === c.id ? ' aria-current="true"' : "") + "><span>" + esc(c.n) + "</span><small>" + esc(c.p) + "</small></button></li>";
+    }).join("") : '<li class="none">Aucune ville trouvée. Saisissez des coordonnées ci-dessous.</li>';
+  }
+  function fillMethods() {
+    $("method").innerHTML = Object.keys(METHODS).map(function (k) { return '<option value="' + k + '">' + esc(METHODS[k].n) + "</option>"; }).join("");
+    $("method").value = S.method;
+    $("asr").value = String(S.asr);
+  }
+
+  $("toggle").addEventListener("click", function () {
+    var open = $("panel").hidden;
+    $("panel").hidden = !open;
+    this.setAttribute("aria-expanded", String(open));
+    this.textContent = open ? "Fermer" : "Changer de lieu";
+    if (open) renderCities();
+  });
+  $("q").addEventListener("input", renderCities);
+  $("cities").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-city]");
+    if (!b) return;
+    S.city = b.getAttribute("data-city");
+    var c = currentLoc();
+    if (!S.touched) { S.method = methodFor(c.c); $("method").value = S.method; }
+    save(); sel = null; renderCities(); update(true);
+  });
+  $("apply").addEventListener("click", function () {
+    var lat = parseFloat($("lat").value.replace(",", ".")), lng = parseFloat($("lng").value.replace(",", "."));
+    var tz = $("tz").value.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    var err = $("err");
+    if (!(lat >= -90 && lat <= 90) || !(lng >= -180 && lng <= 180)) { err.textContent = "Latitude entre -90 et 90, longitude entre -180 et 180."; return; }
+    try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); } catch (e) { err.textContent = "Fuseau horaire inconnu. Exemple : Europe/Paris."; return; }
+    err.textContent = "";
+    S.city = "custom";
+    S.custom = { id: "custom", n: $("nm").value.trim() || lat.toFixed(3) + ", " + lng.toFixed(3), p: "", c: "", lat: lat, lng: lng, tz: tz };
+    save(); sel = null; renderCities(); update(true);
+  });
+  $("method").addEventListener("change", function () { S.method = this.value; S.touched = true; save(); update(true); });
+  $("asr").addEventListener("change", function () { S.asr = +this.value; save(); update(true); });
+
+  function stepDay(n) {
+    var loc = currentLoc(), t = nowIn(loc.tz);
+    sel = shift(sel || { y: t.y, m: t.m, d: t.d }, n);
+    update(true);
+  }
+  $("prev").addEventListener("click", function () { stepDay(-1); });
+  $("nextday").addEventListener("click", function () { stepDay(1); });
+  $("today").addEventListener("click", function () { sel = null; update(true); });
+
+  $("geo").addEventListener("click", function () {
+    var err = $("err");
+    if (!navigator.geolocation) { err.textContent = "La localisation n'est pas disponible sur cet appareil."; return; }
+    err.textContent = "Recherche de votre position…";
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      var tz = "";
+      try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
+      S.city = "custom";
+      S.custom = { id: "custom", n: "Ma position", p: "", c: "", lat: pos.coords.latitude, lng: pos.coords.longitude, tz: tz || "UTC" };
+      err.textContent = "";
+      save(); sel = null; renderCities(); update(true);
+    }, function (e) {
+      err.textContent = e && e.code === 1 ? "Autorisez la localisation dans votre navigateur, ou choisissez une ville." : "Position introuvable. Choisissez une ville ou saisissez des coordonnées.";
+    }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+  });
+
+  $("tz").value = (function () { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { return ""; } })();
+  fillMethods();
+  update(true);
+  setInterval(function () { update(false); }, 1000);
+})();
+</script>
+</body>
+</html>
